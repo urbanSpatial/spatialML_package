@@ -114,11 +114,37 @@ mape <- function(pred, obs){
 }
 
 
+#' Purrr helper to compute the logarithmic score of observed data given predictions
+#'
+#' Scoring function that calculates the negative log likelihood of the data if the prediction was true. Minimizing the negative log likihood will get closer to predictions matching observed quantities. The `dpois` function is used for count data. Some discussion here: https://stats.stackexchange.com/questions/71720/error-metrics-for-cross-validating-poisson-models
+#'
+#' @param pred predicted count
+#' @param obs observed count
+#'
+#' @return a numeric object of the logarithmic score value
+#'
+#' @examples
+#'
+#' @export
+#' 
 log_dev <- function(pred, obs){
   log_dev <- -log(dpois(obs, lambda = pred))
   return(log_dev)
 }
 
+#' Purrr helper to compute the probability of the logarithmic score of observed data given predictions
+#'
+#' This function calculates the same logarithmic score as `log_dev()`, but exponentiates the log to return a probability. Given that the probability of any one score will be rather small (because probability is spread across a wide range of possible score), this is better used when summed over a range of scores.
+#'
+#' @param pred predicted count
+#' @param obs observed count
+#'
+#' @return a numeric object of the probability of a logarithmic score
+#'
+#' @examples
+#'
+#' @export
+#'
 logdev_p <- function(pred, obs){
   x <- -log(dpois(obs, lambda = pred))
   x <- round(exp(-x),3)
@@ -209,7 +235,24 @@ sar_pred <- function(model, squared = TRUE){
 }
 
 
-
+#' Purrr helper to predict for Random Forest (ranger package), lasso (glmnet package), or Linear Model objects
+#'
+#' This function is a wraps the predict function for objects of type `ranger`, `cv.glmnet`, or `lm`. NOTE: This function should be deprecated and turned into individual model type prediction helpers.
+#' 
+#' @param model a fit `ranger`, `cv.glmnet`, or `lm` model object
+#' @param sqrt binary TRUE/FALSE indicating if the dependent variable is transformed with a square
+#' @param newdata a dataframe of new observations
+#' @param type A character of the prediction type. See initial model fit package for options
+#' @param y_var A character string or NA for the name of the dependent variable. Used in `glmnet` fit to remove that variable from the dataframe
+#' @param offset_var character string or NA for name of variable used as an offset in `glmnet` model formula
+#' @param offset_amnt an integer or NA for the amount to offset `offset_var` by. Used in `glmnet` model specification
+#'
+#' @return a dataframe of model predictions on `newdata`.
+#'
+#' @examples
+#'
+#' @export
+#'
 lm_predict <- function(model, newdata, type = "response", 
                        sqrt = FALSE, y_var = NA, 
                        offset_var = NA, offset_amnt = NA){
@@ -265,7 +308,25 @@ rf_fit <- function(dat, formula, mtry_add = 0, importance = "none"){
 
 ########################### END PURRR MODEL HELPER FUNCS #######################
 
+
 ########################### MODEL PLOTTING FUNCTIONS ###########################
+
+mapTheme <- function(base_size = 12) {
+  theme(
+    text = element_text( color = "black"),
+    plot.title = element_text(size = 14,colour = "black"),
+    plot.subtitle=element_text(face="italic"),
+    plot.caption=element_text(hjust=0),
+    axis.ticks = element_blank(),
+    panel.background = element_blank(),axis.title = element_blank(),
+    axis.text = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(colour = "black", fill=NA, size=2)
+  )
+}
+
 plot_fold_pred <- function(preds, obs, type = "fit"){
   if(is(preds,"list")){
     fold_reps <- map_int(preds, length)
@@ -344,24 +405,7 @@ model_pred_geoplot <- function(pred, test_y, test_net_id, study_poly,
 
   return(list(MAE_geoplot = MAE_plot, pred_geoplot = pred_plot))
 }
-###################################################################
-g <- function(x) dplyr::glimpse(x)
-plot_pred <- function(model, obs, type = "response"){
-  if(class(model)[1] %in% c("sarlm")){
-    pred <- as.data.frame(predict(model, type = type))$signal
-  } else {
-    pred <- predict(model, type = type)
-  }
-  preds <- data.frame(pred = pred,
-                      obs  = obs)
-  ggplot(preds, aes(x = obs, y = pred)) +
-    geom_point() +
-    coord_equal() +
-    theme_bw()
-}
-scale_this <- function(x){
-  (x - mean(x, na.rm=TRUE)) / sd(x, na.rm=TRUE)
-}
+
 feature_corrplot <- function(data, title){
   cps_cor <- cor(data)
   #p.mat <- cor.mtest(data)$p # MDH removed p-value
@@ -375,6 +419,198 @@ feature_corrplot <- function(data, title){
                 sig.level = 0.01, insig = "blank", diag = FALSE, title = title, mar=c(0,0,1,0))
   return(p)
 }
+
+plot_pred <- function(model, obs, type = "response"){
+  if(class(model)[1] %in% c("sarlm")){
+    pred <- as.data.frame(predict(model, type = type))$signal
+  } else {
+    pred <- predict(model, type = type)
+  }
+  preds <- data.frame(pred = pred,
+                      obs  = obs)
+  ggplot(preds, aes(x = obs, y = pred)) +
+    geom_point() +
+    coord_equal() +
+    theme_bw()
+}
+
+make_fishnet_dist_plot <- function(dist_dat, base_map, alpha = 0.8, legend = "none", 
+                                   col_scale = "D", direction = 1, var_name = "Cut Value",
+                                   title = ""){
+  layer_name <- unique(dist_dat$feature_name)
+  p <- ggmap(base_map) +
+    geom_sf(data = ll(dist_dat), aes(fill = cut_val), 
+            color = NA, alpha = alpha, inherit.aes = F) +
+    scale_fill_viridis_d(na.value = NA, option = col_scale, 
+                         direction = direction, name = var_name) +
+    labs(title = title) +
+    theme_bw() +
+    theme(
+      legend.position = legend,
+      axis.text = element_blank(),
+      axis.ticks = element_blank(),
+      axis.title = element_blank(),
+      plot.margin=unit(c(0,0,0,0), "cm")
+    )
+  return(p)
+}
+make_stamen <- function(dat_lst, save_path = NULL,
+                        color = "red", buffer = 5000, w = 8, h = 8, save_plot = FALSE){ 
+  layer_name <- names(dat_lst)
+  map_data   <- dat_lst[[1]]
+  base_map   <- get_map(location = unname(st_bbox(ll(st_buffer(map_data,buffer)))),
+                        source = "stamen",
+                        maptype = "toner")
+  gg <- ggmap(base_map) +
+    geom_sf(data = ll(map_data), inherit.aes = FALSE, color = I(color))
+  if(isTRUE(save_plot)){
+    ggsave(file.path(save_path, "stamen_maps",paste0(layer_name,".png")),
+           plot = gg, width = w, height = h)
+  } else {
+    return(gg)
+  }
+}
+q_labels <- function(values, round = 1, width = NULL){
+  if(is.null(width)){
+    max_l <- nchar(floor(max(values)))
+    width = max_l + round + 1 # 1 added for decimal char
+  }
+  qq <- quantile(values, seq(0,0.9,0.1),na.rm=T)
+  qq <- as.character(round(qq,round))
+  qq <- str_pad(qq,width = width, side = "right", pad = 0)
+}  
+
+gplot_data <- function(x, maxpixels = 50000)  {
+  # mimics function of spatstat::gplot() so that geom_tile can be used instead
+  # https://stackoverflow.com/questions/48955504/how-to-overlay-a-transparent-raster-on-ggmap
+  # https://github.com/statnmap/SDMSelect/
+  # Sébastien Rochette
+  x <- raster::sampleRegular(x, maxpixels, asRaster = TRUE)
+  coords <- raster::xyFromCell(x, seq_len(raster::ncell(x)))
+  ## Extract values
+  dat <- utils::stack(as.data.frame(raster::getValues(x)))
+  names(dat) <- c('value', 'variable')
+  
+  dat <- dplyr::as.tbl(data.frame(coords, dat))
+  
+  if (!is.null(levels(x))) {
+    dat <- dplyr::left_join(dat, levels(x)[[1]],
+                            by = c("value" = "ID"))
+  }
+  dat
+}
+################# END MODEL PLOTTING FUNCTIONS #########################
+
+#################      Utility Functions       #########################
+g <- function(x) dplyr::glimpse(x)
+
+make_na_binary <- function(x){
+  x <- ifelse(is.na(x),0,1)
+}
+
+scale_this <- function(x){
+  (x - mean(x, na.rm=TRUE)) / sd(x, na.rm=TRUE)
+}
+nn_function <- function(measureFrom,measureTo,k) {
+  
+  nn <-   
+    get.knnx(measureTo, measureFrom, k)$nn.dist
+  
+  output <-
+    as.data.frame(nn) %>%
+    rownames_to_column(var = "thisPoint") %>%
+    gather(points, point_distance, V1:ncol(.)) %>%
+    arrange(as.numeric(thisPoint)) %>%
+    group_by(thisPoint) %>%
+    dplyr::summarize(value = mean(point_distance)) %>%
+    arrange(as.numeric(thisPoint)) %>% 
+    dplyr ::select(-thisPoint)
+  
+  return(output)  
+}
+
+divide_by <- function(dividend,divisor){
+  result <- integer(length(dividend))
+  for(i in seq_along(dividend)){
+    if(divisor[i] == 0){
+      result_i <- 0
+    } else if(divisor[i] > 0){
+      result_i <- (dividend[i]/divisor[i])
+    }
+    result[i] <- result_i
+  }
+  return(result)
+}
+
+comb <- function(x, ...) {
+  # https://stackoverflow.com/questions/19791609/saving-multiple-outputs-of-foreach-dopar-loop/19801108
+  lapply(seq_along(x),
+         function(i) c(x[[i]], lapply(list(...), function(y) y[[i]])))
+}
+
+make_cuts <- function(dat,field_name = "mean_dist", p = seq(0,1,0.1), 
+                      cuts = c("quantiles", "breaks"), n_breaks = 5){
+  cuts <- match.arg(cuts)
+  dat_vec <- pull(dat, !!as.name(field_name))
+  if(cuts == "quantiles"){
+    dat <- dat %>%
+      mutate(cut_val = as.character(Hmisc::cut2(dat_vec,
+                                                cuts = unique(as.numeric(quantile(dat_vec, na.rm=T,
+                                                                                  p = p))),
+                                                digits = 3)))
+  } else if(cuts == "breaks"){
+    dat <- dat %>%
+      mutate(cut_val = Hmisc::cut2(dat_vec, g = n_breaks, digits = 3))
+  }
+}
+
+st_drop_geometry <- function(x) {
+  if(inherits(x,"sf")) {
+    x <- st_set_geometry(x, NULL)
+    class(x) <- 'data.frame'
+  }
+  return(x)
+}
+find_dupes <- function(dat){
+  unq <- nrow(unique(st_drop_geometry(dat)))
+  tot <- nrow(dat)
+  if(unq == tot){
+    return("no dupes here")
+  } else {
+    return("DUPLICATED ROWS!")
+  }
+}
+ll <- function(dat, proj4 = 4326){
+  st_transform(dat, proj4)
+}
+
+get_window <- function(dat, buff_dist = 5000){
+  bb_coords <- unname(st_bbox(ll(st_buffer(dat,buff_dist))))
+  w1 <- c(bb_coords[c(1,3)])
+  w2 <- c(bb_coords[c(2,4)])
+  window <- owin(w1,w2)
+}
+
+bin_class <- function(dat, bin_col = "pred", 
+                      quantile_labels = 100, break_vec = c(-1, 30, 50, 70, 90, 100)){
+  if(is(dat, "sf")){
+    dat <- st_drop_geometry(dat)
+  }
+  pred_bin <- as.numeric(.bincode(dat[,bin_col]+1e-8, # wiggle factor to get above zero
+                                  breaks = quantile(dat[,bin_col],
+                                                    seq(0,1, by=(1/quantile_labels)), 
+                                                    na.rm = TRUE,
+                                                    labels = seq(1,quantile_labels,1))))
+  pred_bin_class <- as.numeric(cut(pred_bin, 
+                                   breaks = break_vec, 
+                                   na.rm  = TRUE,
+                                   labels = seq(1,length(break_vec)-1,1)))
+  pred_bin_class <- ifelse(is.na(pred_bin_class), length(break_vec)-1, pred_bin_class)
+}
+##################  END Utility Functions   ############################
+
+################# Feature Extraction Functions  ########################
+
 NN_point_features <- function(var_list, fishnet, k){
   NN_results <- foreach(i = seq_along(var_list),
                         .export=c('nn_function'),
@@ -452,43 +688,6 @@ get_individual_features <- function(data, field, prefix, count_threshold){
   }
   return(feat_list)
 }
-nn_function <- function(measureFrom,measureTo,k) {
-  
-  nn <-   
-    get.knnx(measureTo, measureFrom, k)$nn.dist
-  
-  output <-
-    as.data.frame(nn) %>%
-    rownames_to_column(var = "thisPoint") %>%
-    gather(points, point_distance, V1:ncol(.)) %>%
-    arrange(as.numeric(thisPoint)) %>%
-    group_by(thisPoint) %>%
-    dplyr::summarize(value = mean(point_distance)) %>%
-    arrange(as.numeric(thisPoint)) %>% 
-    dplyr ::select(-thisPoint)
-  
-  return(output)  
-}
-make_na_binary <- function(x){
-  x <- ifelse(is.na(x),0,1)
-}
-divide_by <- function(dividend,divisor){
-  result <- integer(length(dividend))
-  for(i in seq_along(dividend)){
-    if(divisor[i] == 0){
-      result_i <- 0
-    } else if(divisor[i] > 0){
-      result_i <- (dividend[i]/divisor[i])
-    }
-    result[i] <- result_i
-  }
-  return(result)
-}
-comb <- function(x, ...) {
-# https://stackoverflow.com/questions/19791609/saving-multiple-outputs-of-foreach-dopar-loop/19801108
-  lapply(seq_along(x),
-         function(i) c(x[[i]], lapply(list(...), function(y) y[[i]])))
-}
 
 raster_to_fishnet <- function(rast_dat,fishnet,feature_name){
   fishnet <- fishnet %>%
@@ -512,6 +711,10 @@ raster_to_fishnet <- function(rast_dat,fishnet,feature_name){
     left_join(.,fishnet, by = "net_id") %>%
     st_as_sf()
 }
+
+################# End Feature Extraction Functions  #####################
+
+
 # make_cuts <- function(dat,field_name = "mean_dist", p = seq(0,1,0.1)){
 #   dat_vec <- pull(dat, !!as.name(field_name))
 #   dat <- dat %>%
@@ -520,139 +723,8 @@ raster_to_fishnet <- function(rast_dat,fishnet,feature_name){
 #                                                                                 p = p))))))
 # }
 
-make_cuts <- function(dat,field_name = "mean_dist", p = seq(0,1,0.1), 
-                      cuts = c("quantiles", "breaks"), n_breaks = 5){
-  cuts <- match.arg(cuts)
-  dat_vec <- pull(dat, !!as.name(field_name))
-  if(cuts == "quantiles"){
-    dat <- dat %>%
-      mutate(cut_val = as.character(Hmisc::cut2(dat_vec,
-                                                cuts = unique(as.numeric(quantile(dat_vec, na.rm=T,
-                                                                                  p = p))),
-                                                digits = 3)))
-  } else if(cuts == "breaks"){
-    dat <- dat %>%
-      mutate(cut_val = Hmisc::cut2(dat_vec, g = n_breaks, digits = 3))
-  }
-}
 
-make_fishnet_dist_plot <- function(dist_dat, base_map, alpha = 0.8, legend = "none", 
-                                   col_scale = "D", direction = 1, var_name = "Cut Value",
-                                   title = ""){
-  layer_name <- unique(dist_dat$feature_name)
-  p <- ggmap(base_map) +
-    geom_sf(data = ll(dist_dat), aes(fill = cut_val), 
-            color = NA, alpha = alpha, inherit.aes = F) +
-    scale_fill_viridis_d(na.value = NA, option = col_scale, 
-                         direction = direction, name = var_name) +
-    labs(title = title) +
-    theme_bw() +
-    theme(
-      legend.position = legend,
-      axis.text = element_blank(),
-      axis.ticks = element_blank(),
-      axis.title = element_blank(),
-      plot.margin=unit(c(0,0,0,0), "cm")
-    )
-  return(p)
-}
-st_drop_geometry <- function(x) {
-  if(inherits(x,"sf")) {
-    x <- st_set_geometry(x, NULL)
-    class(x) <- 'data.frame'
-  }
-  return(x)
-}
-find_dupes <- function(dat){
-  unq <- nrow(unique(st_drop_geometry(dat)))
-  tot <- nrow(dat)
-  if(unq == tot){
-    return("no dupes here")
-  } else {
-    return("DUPLICATED ROWS!")
-  }
-}
-ll <- function(dat, proj4 = 4326){
-  st_transform(dat, proj4)
-}
-make_stamen <- function(dat_lst, save_path = NULL,
-                        color = "red", buffer = 5000, w = 8, h = 8, save_plot = FALSE){ 
-  layer_name <- names(dat_lst)
-  map_data   <- dat_lst[[1]]
-  base_map   <- get_map(location = unname(st_bbox(ll(st_buffer(map_data,buffer)))),
-                        source = "stamen",
-                        maptype = "toner")
-  gg <- ggmap(base_map) +
-    geom_sf(data = ll(map_data), inherit.aes = FALSE, color = I(color))
-  if(isTRUE(save_plot)){
-    ggsave(file.path(save_path, "stamen_maps",paste0(layer_name,".png")),
-           plot = gg, width = w, height = h)
-  } else {
-    return(gg)
-  }
-}
-q_labels <- function(values, round = 1, width = NULL){
-  if(is.null(width)){
-    max_l <- nchar(floor(max(values)))
-    width = max_l + round + 1 # 1 added for decimal char
-  }
-  qq <- quantile(values, seq(0,0.9,0.1),na.rm=T)
-  qq <- as.character(round(qq,round))
-  qq <- str_pad(qq,width = width, side = "right", pad = 0)
-}  
-gplot_data <- function(x, maxpixels = 50000)  {
-  # mimics function of spatstat::gplot() so that geom_tile can be used instead
-  # https://stackoverflow.com/questions/48955504/how-to-overlay-a-transparent-raster-on-ggmap
-  # https://github.com/statnmap/SDMSelect/
-  # Sébastien Rochette
-  x <- raster::sampleRegular(x, maxpixels, asRaster = TRUE)
-  coords <- raster::xyFromCell(x, seq_len(raster::ncell(x)))
-  ## Extract values
-  dat <- utils::stack(as.data.frame(raster::getValues(x)))
-  names(dat) <- c('value', 'variable')
-  
-  dat <- dplyr::as.tbl(data.frame(coords, dat))
-  
-  if (!is.null(levels(x))) {
-    dat <- dplyr::left_join(dat, levels(x)[[1]],
-                            by = c("value" = "ID"))
-  }
-  dat
-}
-get_window <- function(dat, buff_dist = 5000){
-  bb_coords <- unname(st_bbox(ll(st_buffer(dat,buff_dist))))
-  w1 <- c(bb_coords[c(1,3)])
-  w2 <- c(bb_coords[c(2,4)])
-  window <- owin(w1,w2)
-}
-mapTheme <- function(base_size = 12) {
-  theme(
-    text = element_text( color = "black"),
-    plot.title = element_text(size = 14,colour = "black"),
-    plot.subtitle=element_text(face="italic"),
-    plot.caption=element_text(hjust=0),
-    axis.ticks = element_blank(),
-    panel.background = element_blank(),axis.title = element_blank(),
-    axis.text = element_blank(),
-    axis.title.x = element_blank(),
-    axis.title.y = element_blank(),
-    panel.grid.minor = element_blank(),
-    panel.border = element_rect(colour = "black", fill=NA, size=2)
-  )
-}
-bin_class <- function(dat, bin_col = "pred", 
-                      quantile_labels = 100, break_vec = c(-1, 30, 50, 70, 90, 100)){
-  if(is(dat, "sf")){
-    dat <- st_drop_geometry(dat)
-  }
-  pred_bin <- as.numeric(.bincode(dat[,bin_col]+1e-8, # wiggle factor to get above zero
-                                  breaks = quantile(dat[,bin_col],
-                                                    seq(0,1, by=(1/quantile_labels)), 
-                                                    na.rm = TRUE,
-                                                    labels = seq(1,quantile_labels,1))))
-  pred_bin_class <- as.numeric(cut(pred_bin, 
-                                   breaks = break_vec, 
-                                   na.rm  = TRUE,
-                                   labels = seq(1,length(break_vec)-1,1)))
-  pred_bin_class <- ifelse(is.na(pred_bin_class), length(break_vec)-1, pred_bin_class)
-}
+
+
+
+
