@@ -311,6 +311,18 @@ rf_fit <- function(dat, formula, mtry_add = 0, importance = "none"){
 
 ########################### MODEL PLOTTING FUNCTIONS ###########################
 
+#' A map theme for `ggplot2`
+#'
+#' This is a lightly modified map theme that can be used to standardize maps for a given project
+#' 
+#' @param base_size an integer for a default font size
+#'
+#' @return a `ggplot2` map theme object
+#'
+#' @examples
+#'
+#' @export
+#'
 mapTheme <- function(base_size = 12) {
   theme(
     text = element_text( color = "black"),
@@ -327,6 +339,20 @@ mapTheme <- function(base_size = 12) {
   )
 }
 
+#' Plot the predictions from cross-validation folds
+#'
+#' This function plots either the predictions or residuals from a dataframe of predicted, obeserved, and cross-fold index values. The input can either be a two equal length vectors of predictions and mathcing observations (e.g. a single cv fold) or a list of equal length vectors from matching predictions and observation (e.g. a list element for each cv fold). 
+#' 
+#' @param pred predicted count
+#' @param obs observed count
+#' @param type a chrater string of either `fit` or `residual` to determine the plot type.
+#'
+#' @return a `ggplot2` map object
+#'
+#' @examples
+#'
+#' @export
+#'
 plot_fold_pred <- function(preds, obs, type = "fit"){
   if(is(preds,"list")){
     fold_reps <- map_int(preds, length)
@@ -370,6 +396,7 @@ plot_fold_pred <- function(preds, obs, type = "fit"){
       )
   }
 }
+
 # 
 # pred_dat <- data.frame(pred = protective_rf_pred_dat$pred,
 #                        test_y  = protective_rf_pred_dat$test_y,
@@ -381,6 +408,23 @@ plot_fold_pred <- function(preds, obs, type = "fit"){
 # MAE_geoplot <- score_model(MAE_geoplot) %>%
 #   make_cuts(., "logdev")
 
+#' Plot the predictions and MAE on sepreate `ggmap` basemaps
+#'
+#' This function takes test set prediction results, a spatial fishnet grid, and a joining `net_id` index to plot results by fishnet grids onto a `ggmap` basemap. The function returns this plot for both the predicted counts and a plot for the MAE.
+#' 
+#' @param pred predicted count
+#' @param test_y observed count from test set (or in-sample if desired)
+#' @param test_net_id an integer vector of the fishnet polygon id that matches the order of `pred` and `test_y`.
+#' @param study_poly an `sf` object of a fishnet grid with column `net_id` to join in the prediction data
+#' @param base_map a `ggmap` package basemap of the study area
+#' @param model_name a character string of the model name to show in the plot legend
+#'
+#' @return a list of two `ggplot2` map objects. First is the MAE plot, second is predictions plot.
+#'
+#' @examples
+#'
+#' @export
+#'
 model_pred_geoplot <- function(pred, test_y, test_net_id, study_poly, 
                                base_map, model_name){
   pred_dat <- data.frame(pred = pred,
@@ -406,6 +450,19 @@ model_pred_geoplot <- function(pred, test_y, test_net_id, study_poly,
   return(list(MAE_geoplot = MAE_plot, pred_geoplot = pred_plot))
 }
 
+#' Plot the correlation between features of a dataset.
+#'
+#' This function is a wrapper around the `corrplot::corrplot()` function. This function adds arguments to make the resulting corrplot only the upper traingle, showing significance, and colorized by `viridislite::viridis`
+#' 
+#' @param data a dataframe of feature columns to be plotted as correlation
+#' @param title a character vector for the title to be displayed in the plot
+#'
+#' @return a plot
+#'
+#' @examples
+#'
+#' @export
+#'
 feature_corrplot <- function(data, title){
   cps_cor <- cor(data)
   #p.mat <- cor.mtest(data)$p # MDH removed p-value
@@ -420,6 +477,20 @@ feature_corrplot <- function(data, title){
   return(p)
 }
 
+#' Plot the predicted versus actual counts for in-sample data
+#'
+#' This function is for quickly plotting prediction versus oberserved in-sample counts as a `ggplot`. Inputs can be a `lm` fit model, a `sarlm` fit model, or any other model that allows for `predict(model, type = type)` to be used.
+#' 
+#' @param model a fit model obejct of type `lm`, `sarlm`, or or any other model that allows for `predict(model, type = type)` to be used
+#' @param obs a integer/numeric vector of observed data that the model was fit on
+#' @param type a character string of the prediction type. Usually `response`, but will vary for different models or uses
+#'
+#' @return a `ggplot` plot object
+#'
+#' @examples
+#'
+#' @export
+#'
 plot_pred <- function(model, obs, type = "response"){
   if(class(model)[1] %in% c("sarlm")){
     pred <- as.data.frame(predict(model, type = type))$signal
@@ -433,6 +504,7 @@ plot_pred <- function(model, obs, type = "response"){
     coord_equal() +
     theme_bw()
 }
+
 
 make_fishnet_dist_plot <- function(dist_dat, base_map, alpha = 0.8, legend = "none", 
                                    col_scale = "D", direction = 1, var_name = "Cut Value",
