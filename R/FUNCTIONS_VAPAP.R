@@ -234,6 +234,21 @@ sar_pred <- function(model, squared = TRUE){
   return(pred)
 }
 
+#' Purrr helper function to center and scale a numeric vector
+#'
+#' Takes a numeric vector, subtracts the mean and divides by standard deviation. Same as base `scale(x, center = TRUE, scale = TRUE)`, but doesn't return the mean and sd as attributes.
+#' 
+#' @param x a numeric vector
+#'
+#' @return a numeric vector
+#'
+#' @examples
+#'
+#' @export
+#'
+scale_this <- function(x){
+  (x - mean(x, na.rm=TRUE)) / sd(x, na.rm=TRUE)
+}
 
 #' Purrr helper to predict for Random Forest (ranger package), lasso (glmnet package), or Linear Model objects
 #'
@@ -526,6 +541,7 @@ make_fishnet_dist_plot <- function(dist_dat, base_map, alpha = 0.8, legend = "no
     )
   return(p)
 }
+
 make_stamen <- function(dat_lst, save_path = NULL,
                         color = "red", buffer = 5000, w = 8, h = 8, save_plot = FALSE){ 
   layer_name <- names(dat_lst)
@@ -542,6 +558,7 @@ make_stamen <- function(dat_lst, save_path = NULL,
     return(gg)
   }
 }
+
 q_labels <- function(values, round = 1, width = NULL){
   if(is.null(width)){
     max_l <- nchar(floor(max(values)))
@@ -574,19 +591,54 @@ gplot_data <- function(x, maxpixels = 50000)  {
 ################# END MODEL PLOTTING FUNCTIONS #########################
 
 #################      Utility Functions       #########################
+
+#' Utility function to shorten the call for `dplyr::glimpse()` to `g()`
+#'
+#' Simply wraps `dplyr::glimpse()` in the function `g()` so that you can save some key strokes. Similar to the output of `str()`.
+#' 
+#' @param x an r object to get more details on
+#'
+#' @return further details on the object
+#'
+#' @examples
+#'
+#' @export
+#'
 g <- function(x) dplyr::glimpse(x)
 
+#' Utility function to convert a vector of 1 and `NA` to binary 1 and zero
+#'
+#' If a integer vector includes `NA` it is converted to zero, all other values are converted to 1
+#' 
+#' @param x a numeric vector
+#'
+#' @return a numeric vector
+#'
+#' @examples
+#'
+#' @export
+#'
 make_na_binary <- function(x){
   x <- ifelse(is.na(x),0,1)
 }
 
-scale_this <- function(x){
-  (x - mean(x, na.rm=TRUE)) / sd(x, na.rm=TRUE)
-}
+#' Utility function to compute mean nearest neighbor distance for each fishnet centroid to observation points.
+#'
+#' This funtion uses `FNN::get.knnx()` function to compute the k nearest neighbor distances from each fishnet centroid to all points of observed data (e.g. grocery stores, police reports, points of interest, etc...). THis function then takes the output of the k distances and computes the mean distance of the k nearest neighbors for each fishnet cell, returning the results in a tidy format
+#' 
+#' @param measureFrom a matrix of X and Y coordinates of points to measure from
+#' @param measureTo a matrix of X and Y coordinates of points to measure to
+#' @param k a integer of the nearest neighbors to find
+#'
+#' @return a dataframe of the average of k nearest neighbor distances from each `measureFrom` to all `measureTo` coordinates.
+#'
+#' @examples
+#'
+#' @export
+#'
 nn_function <- function(measureFrom,measureTo,k) {
   
-  nn <-   
-    get.knnx(measureTo, measureFrom, k)$nn.dist
+  nn <- FNN::get.knnx(measureTo, measureFrom, k)$nn.dist
   
   output <-
     as.data.frame(nn) %>%
@@ -601,6 +653,19 @@ nn_function <- function(measureFrom,measureTo,k) {
   return(output)  
 }
 
+#' Utility function to divide a numeric vector by another numeric vector when the divisore may contian zeros
+#' 
+#' This funtion is a simple divide function, but has a safegaurd when the divisor may contain zeros that would typically return an `INF` value. In this case, a divide by zero returns a zero.
+#' 
+#' @param divident a number or numeric vector to be divided
+#' @param divisior a number or numeric vector to divide by
+#'
+#' @return a number or numeric vector of quotients from the division.
+#'
+#' @examples
+#'
+#' @export
+#'
 divide_by <- function(dividend,divisor){
   result <- integer(length(dividend))
   for(i in seq_along(dividend)){
@@ -614,12 +679,40 @@ divide_by <- function(dividend,divisor){
   return(result)
 }
 
+#' Utility function for a `foreach` parallel loop to return a list of multiple objects created in each loop.
+#' 
+#' The standard behaviors of a `foreach` loop is to concatenate `c()` or list one output per loop. In this case, we want to create multiple objects per loop but do not what them concatenated so we use this custom function for the `.combine` argument of the `foreach` loop. See link for example: https://stackoverflow.com/questions/19791609/saving-multiple-outputs-of-foreach-dopar-loop/19801108
+#' 
+#' @param x a list of any number of any objects created in a `foreach` loop to be combined as a list 
+#'
+#' @return a list
+#'
+#' @examples
+#'
+#' @export
+#'
 comb <- function(x, ...) {
   # https://stackoverflow.com/questions/19791609/saving-multiple-outputs-of-foreach-dopar-loop/19801108
   lapply(seq_along(x),
          function(i) c(x[[i]], lapply(list(...), function(y) y[[i]])))
 }
 
+#' Utility function to cut a numeric vector into classes by either quantiles cutpoints (e.g. seq(0,1,0.1)) or quantile groups (e.g. 5 groups of equal size).
+#'
+#' This function wraps the `Hmisc::cut2()` function for two different approaches that it are commonly used in this project; to return data labels for a specific sequence of quantiles, or to label data for a specific number of equal sized groups. These two behaviors are set by the `cuts` argument and supporting `p` or `n_breaks` arguments. The group labels are returned as character ranges in a column called `cut_val`.
+#'
+#' @param dat a dataframe containing at least one numeric column to be cut into groups
+#' @param field_name the name of the column containing numbers to be cut into groups
+#' @param p if `cuts` = "quantiles", `p` is the sequance of probabilities on which to create groups
+#' @param cuts character string of either "quantiles" or "breaks" to determine behvaior of function
+#' @param n_breaks if `cuts` = "breaks", `n_breaks` is the number of equal quantitiy groups to break data into
+#'
+#' @return a dataframe with a column called `cut_val` which contians the character label for the resulting group.
+#'
+#' @examples
+#'
+#' @export
+#' 
 make_cuts <- function(dat,field_name = "mean_dist", p = seq(0,1,0.1), 
                       cuts = c("quantiles", "breaks"), n_breaks = 5){
   cuts <- match.arg(cuts)
@@ -632,10 +725,22 @@ make_cuts <- function(dat,field_name = "mean_dist", p = seq(0,1,0.1),
                                                 digits = 3)))
   } else if(cuts == "breaks"){
     dat <- dat %>%
-      mutate(cut_val = Hmisc::cut2(dat_vec, g = n_breaks, digits = 3))
+      mutate(cut_val = as.character(Hmisc::cut2(dat_vec, g = n_breaks, digits = 3)))
   }
 }
 
+#' Utility function to drop geometry column and attributes from an `sf` object resulting in a standard data.frame
+#'
+#' The geometry of an `sf` object is very sticky and sometimes you need to get rid of it to work with the data. This function drops the geometry and additionally drops any remnant attributes by re-classing the object as a data.frame
+#'
+#' @param x an `sf` object to be turned into a standard dataframe with no geometry
+#'
+#' @return a dataframe
+#'
+#' @examples
+#'
+#' @export
+#' 
 st_drop_geometry <- function(x) {
   if(inherits(x,"sf")) {
     x <- st_set_geometry(x, NULL)
@@ -643,6 +748,19 @@ st_drop_geometry <- function(x) {
   }
   return(x)
 }
+
+#' Utility unit test function to alert to duplicates in an `sf` object (e.g. spatial duplicates)
+#'
+#' This function used `st_drop_geometry()` to compare the total number of spatial observations to the unique number of non-spatial observations. The return is simply a character string alert
+#'
+#' @param dat an `sf` object to be turned checked for duplicates
+#'
+#' @return a character string message
+#'
+#' @examples
+#'
+#' @export
+#' 
 find_dupes <- function(dat){
   unq <- nrow(unique(st_drop_geometry(dat)))
   tot <- nrow(dat)
@@ -652,8 +770,22 @@ find_dupes <- function(dat){
     return("DUPLICATED ROWS!")
   }
 }
-ll <- function(dat, proj4 = 4326){
-  st_transform(dat, proj4)
+
+#' Utility function to reproject an `sf` object to lat/lon (WGS-84) "on-the-fly". This is a shorthand wrapper around `st_transform()`.
+#'
+#' Many spatial functions require data to be projected as lat/lon or some other specific coordinate system, but having the same data laying around in different projections/coordinate systems is messy and can lead to errors. This function is useful to wrap an `sf` object as it is sent as an argument to a function that requires lat/lon data. The default coordinate system to transform into is `EPSG 4326` which is `WGS 84` (http://spatialreference.org/ref/epsg/wgs-84/). Using the `crs` argument, any other project/coordinate system can be specified with an integer with the EPSG code, or character with proj4string (see ?st_transform).
+#'
+#' @param dat an `sf` object to be transformed
+#' @param crs an integer with the EPSG code, or character with proj4string (see ?st_transform)
+#'
+#' @return an `sf` object transformed into into coordinate system specified by `crs`
+#'
+#' @examples
+#'
+#' @export
+#' 
+ll <- function(dat, crs = 4326){
+  st_transform(dat, crs)
 }
 
 get_window <- function(dat, buff_dist = 5000){
