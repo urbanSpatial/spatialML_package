@@ -788,13 +788,41 @@ ll <- function(dat, crs = 4326){
   st_transform(dat, crs)
 }
 
-get_window <- function(dat, buff_dist = 5000){
+#' Utility function to return the "observation window" or `owin` class object from an `sf` object.
+#'
+#' This function takes an `sf` point or polygon object, optionally buffers it by `buff_dist` map units and returns an obervation window object of `owin` class used by the `spatstat` package. The optional buffer is useful to get a window larger than the obsevations for making basemaps.
+#'
+#' @param dat an `sf` object
+#' @param buff_dist an integer of map units which to buffer the geometry in `dat`
+#'
+#' @return an `sf` object transformed into into coordinate system specified by `crs`
+#'
+#' @examples
+#'
+#' @export
+#' 
+get_window <- function(dat, buff_dist = 0){
   bb_coords <- unname(st_bbox(ll(st_buffer(dat,buff_dist))))
   w1 <- c(bb_coords[c(1,3)])
   w2 <- c(bb_coords[c(2,4)])
   window <- owin(w1,w2)
 }
 
+#' Utility function to bin a numeric vector and assign risk scores based on quantile.
+#'
+#' The operation of this function is to take a column of a dataframe `bin_col` of predicted counts, bin (using `base::.bincode()`) it into many quantiles `quantile_labels`, bin the quantiles into a small number of class by `brake_vec`, and assign sequantial integer class labels to the class (e.g. 1, 2, 3, 4, 5). Can be used as a way to develop risk categories.
+#'
+#' @param dat a dataframe or `sf` object containing at least a field of predictions to bin
+#' @param bin_col a character vector of the name of the field in `dat` that contains the predictions
+#' @param quantile_lables an integer denoting the number of qauntiles to bin the predictions into
+#' @param break_vec a vector of integers that are the breaks points of the final class labels.
+#'
+#' @return a numeric vector of integers for the class label.
+#'
+#' @examples
+#'
+#' @export
+#' 
 bin_class <- function(dat, bin_col = "pred", 
                       quantile_labels = 100, break_vec = c(-1, 30, 50, 70, 90, 100)){
   if(is(dat, "sf")){
@@ -844,6 +872,7 @@ NN_point_features <- function(var_list, fishnet, k){
   names(NN_results) <- paste0("NN_",names(var_list))
   return(NN_results)
 }
+
 Euclidean_point_features <- function(var_list, dist_raster, raster_mask, fishnet){
   ED_results <- foreach::foreach(i = seq_along(var_list), 
                                  .combine='comb', .multicombine=TRUE,
@@ -862,6 +891,7 @@ Euclidean_point_features <- function(var_list, dist_raster, raster_mask, fishnet
   names(dist_rasters) <- paste0("ED_",names(var_list))
   return(list(dist_results, dist_raster))
 }
+
 Aggregate_points_Features <- function(var_list, fishnet){
   agg_results <- foreach(i = seq_along(var_list),
                          .packages=c('raster', 'sf', 'dplyr')) %dopar% { 
