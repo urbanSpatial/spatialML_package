@@ -843,6 +843,20 @@ bin_class <- function(dat, bin_col = "pred",
 
 ################# Feature Extraction Functions  ########################
 
+#' Utility function to create nearest neighbor features from an `sf` object of target observations (e.g. crime reports, points of interest, laundry mats) and an `sf` object of the fishnet analysis grid. Parallel processing is an option.
+#' 
+#' The function is a somewhat overloaded approach to computing the average nearest neighbor counts (using `nn_function()`) for an arbitrarily long list of `sf` point objects, in parallel. This requires the `foreach` package to run, but does not require a parallel backend to work; it just won't be parallel. The process is that for each `sf` point object in the `var_list`, the `nn_function()` returns the average nearest neighbor distance for each `fishnet` grid centroid to the `k` nearest observations. The results are joined back to the `fishnet` and cast into a `sf` object and returned with the values. There is handling for the edge case where the number of observations in an element of `var_list` is less than `k`. In that case, a value of `NA` is returned for the average nearest neighbor distance.
+#'
+#' @param var_list a list of `sf` point objects containing the observations of interest 
+#' @param fish_net an `sf` polygon object of the analysis grid
+#' @param k an integer for the number of nearest neighbors to average over
+#'
+#' @return a list of `sf` polygon objects of the analytical fishnet with average nearest neighbor distances
+#'
+#' @examples
+#'
+#' @export
+#' 
 NN_point_features <- function(var_list, fishnet, k){
   NN_results <- foreach(i = seq_along(var_list),
                         .export=c('nn_function'),
@@ -873,15 +887,40 @@ NN_point_features <- function(var_list, fishnet, k){
   return(NN_results)
 }
 
+#' Utility function to create average nearest features from an `sf` object of target observations (e.g. crime reports, points of interest, laundry mats) and an `sf` object of the fishnet analysis grid. Parallel processing is an option.
+#' 
+#' The function is a somewhat overloaded approach to computing the average nearest feature (using `raster::distanceFromPoints()`) for an arbitrarily long list of `sf` point objects, in parallel. This requires the `foreach` package to run, but does not require a parallel backend to work; it just won't be parallel. The process is that for each `sf` point object in the `var_list`, the `raster::distanceFromPoints()` function takes and arbitrarily fine resolution constant value raster `dist_raster`returns a raster of `dim(dist_raster)` where the value of each cell is the distance to the nearest point observation. This distance raster is clipped to the study area and returned as one of the two objects. Further, the distance raster is aggregated to the analytical fishnet `sf` object by taking the mean of the distances from all cells in the distance raster who's centroid falls within a given fishnet cell. This is the second object returned by this function; a `sf` polygon fishnet where each cell is the average distance to the nearest point/observation. 
+#'
+#' @param var_list a list of `sf` point objects containing the observations of interest 
+#' @param dist_raster a raster object of arbitrary resolution (must be less that the cell dimensions of `fishnet`) and a constant value.
+#' @param raster_make an `sf` or `sp` polygon used to clip the resulting distance raster
+#' @param fishnet an `sf` polygon object of the analysis grid
+#'
+#' @return a list of two lists: 1) a list of `sf` polygon objects of the analytical fishnet with average nearest  distance to a point observation, and 2) a list of `raster` objects of the distance rasters.
+#'
+#' @examples
+#'
+#' @export
+#' 
 Euclidean_point_features <- function(var_list, dist_raster, raster_mask, fishnet){
   ED_results <- foreach::foreach(i = seq_along(var_list), 
+                                 # use our custom `comb` function to allow loop to return list of two things
                                  .combine='comb', .multicombine=TRUE,
+                                 # initiate 2 element list to take two results from each loop
                                  .init=list(list(), list()),
                                  .export=c('distanceFromPoints', 'raster_to_fishnet'),
                                  .packages=c('raster', 'sf', 'dplyr')) %dopar% { 
+                                   # get feature sf points object
                                    feature <- names(var_list)[i]
-                                   bs_dist <- distanceFromPoints(dist_raster, sf::st_coordinates(var_list[[feature]]))
+                                   # create a distance raster from points. 
+                                   # dist_raster is an arbitrarily fine raster of study area size
+                                   # returns a dist_raster sized raster of distance to nearest var_list point
+                                   bs_dist <- raster::distanceFromPoints(dist_raster, 
+                                                                         sf::st_coordinates(var_list[[feature]]))
+                                   # clip distance raster to neighborhood
                                    bs_clip <- raster::mask(bs_dist, mask = as(raster_mask, "Spatial"))
+                                   # aggregate distance raster to fishnet group by mean of distance for all 
+                                   # dist_raster cell centroids that fall under a fishnet cell
                                    fea_mean_dist <- raster_to_fishnet(bs_clip,fishnet,paste0("ed_",feature))
                                    list(fea_mean_dist, bs_clip)
                                  }
