@@ -20,7 +20,7 @@ quantile_error <- function(pred,obs,quant){
   return(preds)
 }
 
-#' Purrr helper to ge tr-squared of a linear fit.
+#' Purrr helper to get r-squared of a linear fit.
 #'
 #' Calculates the correlation coefficient of predictions and observed data using the `lm` function and the `r.squared` property of the `lm` object. Function handles `na`, `nan`, and `inf` values by setting them to zero.
 #'
@@ -76,9 +76,9 @@ rmse <- function(pred,obs){
   return(rmse)
 }
 
-#' Purrr helper to compute mean arctangent absolute percentage error (MAAPE) error of predictions and observed data
+#' Purrr helper to compute mean arc tangent absolute percentage error (MAAPE) error of predictions and observed data
 #'
-#' Calculates the mean arctangent absolute percentage error (MAAPE) error for predictions. The MAAPE uses the scale-indepedent advatage of MAPE (Mean Absolute Percent Error), but attempts to correct for the characteristic where the MAPE is very sensitive to small observed values. The MAAPE does this by calculatinf a slope as an angle, while MAPE is a slope as a ratio. See: https://www.sciencedirect.com/science/article/pii/S0169207016000121
+#' Calculates the mean arc tangent absolute percentage error (MAAPE) error for predictions. The MAAPE uses the scale-independent advantage of MAPE (Mean Absolute Percent Error), but attempts to correct for the characteristic where the MAPE is very sensitive to small observed values. The MAAPE does this by calculating a slope as an angle, while MAPE is a slope as a ratio. See: https://www.sciencedirect.com/science/article/pii/S0169207016000121
 #'
 #' @param pred predicted count
 #' @param obs observed count
@@ -116,7 +116,7 @@ mape <- function(pred, obs){
 
 #' Purrr helper to compute the logarithmic score of observed data given predictions
 #'
-#' Scoring function that calculates the negative log likelihood of the data if the prediction was true. Minimizing the negative log likihood will get closer to predictions matching observed quantities. The `dpois` function is used for count data. Some discussion here: https://stats.stackexchange.com/questions/71720/error-metrics-for-cross-validating-poisson-models
+#' Scoring function that calculates the negative log likelihood of the data if the prediction was true. Minimizing the negative log likelihood will get closer to predictions matching observed quantities. The `dpois` function is used for count data. Some discussion here: https://stats.stackexchange.com/questions/71720/error-metrics-for-cross-validating-poisson-models
 #'
 #' @param pred predicted count
 #' @param obs observed count
@@ -154,11 +154,11 @@ logdev_p <- function(pred, obs){
 
 #' Purrr helper to return a five different scoring metrics; R2, MAE, MAAPE, RMSE, and logdev
 #'
-#' This function is a convinient way to get a variety of different metrics on the same data. The input is a dataframe that has the columns `pred` for predicted values and `test_y` for the observed actual values. If the names are any different, it will fail.
+#' This function is a convenient way to get a variety of different metrics on the same data. The input is a dataframe that has the columns `pred` for predicted values and `test_y` for the observed actual values. If the names are any different, it will fail.
 #'
 #' @param dat A dataframe with at least two columns. `pred` for predicted values and `test_y` for observed values
 #'
-#' @return a dataframe with the input volumns of `pred` and `test_y` and the added columns for the test metrics.
+#' @return a dataframe with the input values of `pred` and `test_y` and the added columns for the test metrics.
 #'
 #' @examples
 #'
@@ -174,11 +174,11 @@ score_model <- function(dat){
   return(dat)
 }
 
-#' Purrr helper to return a vector rescaled to between zero and 1 (normalized)
+#' Purrr helper to return a vector re-scaled to between zero and 1 (normalized)
 #'
-#' For any numeric vector, `normalize` elementwise subtracts the vector minimum and divides by the vector's range.
+#' For any numeric vector, `normalize` element-wise subtracts the vector minimum and divides by the vector's range.
 #'
-#' @param y A numeric vector to be rescaled
+#' @param y A numeric vector to be re-scaled
 #'
 #' @return a vector of `length(y)` scaled between zero and 1.
 #'
@@ -199,7 +199,7 @@ normalized<-function(y) {
 #'
 #' @param dat a data frame of independent and dependent variables
 #' @param formula a model formula of class `formula`. NOT a character string
-#' @param family a character string for the link function famimly; e.g. "poisson" or "binomial"
+#' @param family a character string for the link function family; e.g. "poisson" or "binomial"
 #'
 #' @return a fitted model object of class `glm`.
 #'
@@ -214,7 +214,7 @@ glm_fit <- function(dat, formula, family){
 
 #' Purrr helper to predict for Spatial Simultaneous Autoregressive Linear Model objects
 #'
-#' This function is a wrapper on `predict.sarlm` to simplify the call to return in-sample predictions. Has the option to sqaure the resulting predictions.
+#' This function is a wrapper on `predict.sarlm` to simplify the call to return in-sample predictions. Has the option to square the resulting predictions.
 #' 
 #' @param model a fit `sarlm` object returned by `lagsarlm`, `errorsarlm` or `sacsarlm`
 #' @param squared an option to square the prediction results
@@ -299,9 +299,9 @@ lm_predict <- function(model, newdata, type = "response",
 #'
 #' A streamlined helper function to fit a Random Forest model with `ranger`.  This wrapper has some options and defaults and also for tweaking the default parameter for `mtry`. the `mtry_add` argument allows for the user to add to the default number of variables tested at each node split.
 #' 
-#' @param dat a model dataframe with dependent and independent vaiables.
+#' @param dat a model dataframe with dependent and independent variables.
 #' @param formula  a `formula` object. NOT a character string.
-#' @param mtry_add integer value use to increase the deafult value for `mtry` which is `floor(sqrt(ncol(dat)-1))`
+#' @param mtry_add integer value use to increase the default value for `mtry` which is `floor(sqrt(ncol(dat)-1))`
 #' @param importance  
 #'
 #' @return a dataframe of in-sample model predictions.
@@ -356,11 +356,11 @@ mapTheme <- function(base_size = 12) {
 
 #' Plot the predictions from cross-validation folds
 #'
-#' This function plots either the predictions or residuals from a dataframe of predicted, obeserved, and cross-fold index values. The input can either be a two equal length vectors of predictions and mathcing observations (e.g. a single cv fold) or a list of equal length vectors from matching predictions and observation (e.g. a list element for each cv fold). 
+#' This function plots either the predictions or residuals from a dataframe of predicted, observed, and cross-fold index values. The input can either be a two equal length vectors of predictions and matching observations (e.g. a single cv fold) or a list of equal length vectors from matching predictions and observation (e.g. a list element for each cv fold). 
 #' 
 #' @param pred predicted count
 #' @param obs observed count
-#' @param type a chrater string of either `fit` or `residual` to determine the plot type.
+#' @param type a character string of either `fit` or `residual` to determine the plot type.
 #'
 #' @return a `ggplot2` map object
 #'
@@ -423,15 +423,15 @@ plot_fold_pred <- function(preds, obs, type = "fit"){
 # MAE_geoplot <- score_model(MAE_geoplot) %>%
 #   make_cuts(., "logdev")
 
-#' Plot the predictions and MAE on sepreate `ggmap` basemaps
+#' Plot the predictions and MAE on separate `ggmap` base maps
 #'
-#' This function takes test set prediction results, a spatial fishnet grid, and a joining `net_id` index to plot results by fishnet grids onto a `ggmap` basemap. The function returns this plot for both the predicted counts and a plot for the MAE.
+#' This function takes test set prediction results, a spatial fishnet grid, and a joining `net_id` index to plot results by fishnet grids onto a `ggmap` base map. The function returns this plot for both the predicted counts and a plot for the MAE.
 #' 
 #' @param pred predicted count
 #' @param test_y observed count from test set (or in-sample if desired)
 #' @param test_net_id an integer vector of the fishnet polygon id that matches the order of `pred` and `test_y`.
 #' @param study_poly an `sf` object of a fishnet grid with column `net_id` to join in the prediction data
-#' @param base_map a `ggmap` package basemap of the study area
+#' @param base_map a `ggmap` package base map of the study area
 #' @param model_name a character string of the model name to show in the plot legend
 #'
 #' @return a list of two `ggplot2` map objects. First is the MAE plot, second is predictions plot.
@@ -458,16 +458,16 @@ model_pred_geoplot <- function(pred, test_y, test_net_id, study_poly,
     mutate(prediction = round(pred,2),
            feature_name = paste0(model_name," ", "prediction")) %>%
     make_cuts(., "prediction")
-
-    pred_plot <- make_fishnet_dist_plot(pred_geoplot, base_map, 
-                                        legend = "right", var_name = "Prediction")
-
+  
+  pred_plot <- make_fishnet_dist_plot(pred_geoplot, base_map, 
+                                      legend = "right", var_name = "Prediction")
+  
   return(list(MAE_geoplot = MAE_plot, pred_geoplot = pred_plot))
 }
 
-#' Plot the correlation between features of a dataset.
+#' Plot the correlation between features of a data set.
 #'
-#' This function is a wrapper around the `corrplot::corrplot()` function. This function adds arguments to make the resulting corrplot only the upper traingle, showing significance, and colorized by `viridislite::viridis`
+#' This function is a wrapper around the `corrplot::corrplot()` function. This function adds arguments to make the resulting corrplot only the upper triangle, showing significance, and colorized by `viridislite::viridis`
 #' 
 #' @param data a dataframe of feature columns to be plotted as correlation
 #' @param title a character vector for the title to be displayed in the plot
@@ -494,9 +494,9 @@ feature_corrplot <- function(data, title){
 
 #' Plot the predicted versus actual counts for in-sample data
 #'
-#' This function is for quickly plotting prediction versus oberserved in-sample counts as a `ggplot`. Inputs can be a `lm` fit model, a `sarlm` fit model, or any other model that allows for `predict(model, type = type)` to be used.
+#' This function is for quickly plotting prediction versus observed in-sample counts as a `ggplot`. Inputs can be a `lm` fit model, a `sarlm` fit model, or any other model that allows for `predict(model, type = type)` to be used.
 #' 
-#' @param model a fit model obejct of type `lm`, `sarlm`, or or any other model that allows for `predict(model, type = type)` to be used
+#' @param model a fit model object of type `lm`, `sarlm`, or or any other model that allows for `predict(model, type = type)` to be used
 #' @param obs a integer/numeric vector of observed data that the model was fit on
 #' @param type a character string of the prediction type. Usually `response`, but will vary for different models or uses
 #'
@@ -624,7 +624,7 @@ make_na_binary <- function(x){
 
 #' Utility function to compute mean nearest neighbor distance for each fishnet centroid to observation points.
 #'
-#' This funtion uses `FNN::get.knnx()` function to compute the k nearest neighbor distances from each fishnet centroid to all points of observed data (e.g. grocery stores, police reports, points of interest, etc...). THis function then takes the output of the k distances and computes the mean distance of the k nearest neighbors for each fishnet cell, returning the results in a tidy format
+#' This function uses `FNN::get.knnx()` function to compute the k nearest neighbor distances from each fishnet centroid to all points of observed data (e.g. grocery stores, police reports, points of interest, etc...). This function then takes the output of the k distances and computes the mean distance of the k nearest neighbors for each fishnet cell, returning the results in a tidy format
 #' 
 #' @param measureFrom a matrix of X and Y coordinates of points to measure from
 #' @param measureTo a matrix of X and Y coordinates of points to measure to
@@ -653,12 +653,12 @@ nn_function <- function(measureFrom,measureTo,k) {
   return(output)  
 }
 
-#' Utility function to divide a numeric vector by another numeric vector when the divisore may contian zeros
+#' Utility function to divide a numeric vector by another numeric vector when the divisor may contain zeros
 #' 
-#' This funtion is a simple divide function, but has a safegaurd when the divisor may contain zeros that would typically return an `INF` value. In this case, a divide by zero returns a zero.
+#' This function is a simple divide function, but has a safeguard when the divisor may contain zeros that would typically return an `INF` value. In this case, a divide by zero returns a zero.
 #' 
-#' @param divident a number or numeric vector to be divided
-#' @param divisior a number or numeric vector to divide by
+#' @param dividend a number or numeric vector to be divided
+#' @param divisor a number or numeric vector to divide by
 #'
 #' @return a number or numeric vector of quotients from the division.
 #'
@@ -697,17 +697,17 @@ comb <- function(x, ...) {
          function(i) c(x[[i]], lapply(list(...), function(y) y[[i]])))
 }
 
-#' Utility function to cut a numeric vector into classes by either quantiles cutpoints (e.g. seq(0,1,0.1)) or quantile groups (e.g. 5 groups of equal size).
+#' Utility function to cut a numeric vector into classes by either quantiles cut points (e.g. seq(0,1,0.1)) or quantile groups (e.g. 5 groups of equal size).
 #'
 #' This function wraps the `Hmisc::cut2()` function for two different approaches that it are commonly used in this project; to return data labels for a specific sequence of quantiles, or to label data for a specific number of equal sized groups. These two behaviors are set by the `cuts` argument and supporting `p` or `n_breaks` arguments. The group labels are returned as character ranges in a column called `cut_val`.
 #'
 #' @param dat a dataframe containing at least one numeric column to be cut into groups
 #' @param field_name the name of the column containing numbers to be cut into groups
-#' @param p if `cuts` = "quantiles", `p` is the sequance of probabilities on which to create groups
-#' @param cuts character string of either "quantiles" or "breaks" to determine behvaior of function
-#' @param n_breaks if `cuts` = "breaks", `n_breaks` is the number of equal quantitiy groups to break data into
+#' @param p if `cuts` = "quantiles", `p` is the sequence of probabilities on which to create groups
+#' @param cuts character string of either "quantiles" or "breaks" to determine behavior of function
+#' @param n_breaks if `cuts` = "breaks", `n_breaks` is the number of equal quantity groups to break data into
 #'
-#' @return a dataframe with a column called `cut_val` which contians the character label for the resulting group.
+#' @return a dataframe with a column called `cut_val` which contains the character label for the resulting group.
 #'
 #' @examples
 #'
@@ -771,7 +771,7 @@ find_dupes <- function(dat){
   }
 }
 
-#' Utility function to reproject an `sf` object to lat/lon (WGS-84) "on-the-fly". This is a shorthand wrapper around `st_transform()`.
+#' Utility function to re-project an `sf` object to lat/lon (WGS-84) "on-the-fly". This is a shorthand wrapper around `st_transform()`.
 #'
 #' Many spatial functions require data to be projected as lat/lon or some other specific coordinate system, but having the same data laying around in different projections/coordinate systems is messy and can lead to errors. This function is useful to wrap an `sf` object as it is sent as an argument to a function that requires lat/lon data. The default coordinate system to transform into is `EPSG 4326` which is `WGS 84` (http://spatialreference.org/ref/epsg/wgs-84/). Using the `crs` argument, any other project/coordinate system can be specified with an integer with the EPSG code, or character with proj4string (see ?st_transform).
 #'
@@ -790,7 +790,7 @@ ll <- function(dat, crs = 4326){
 
 #' Utility function to return the "observation window" or `owin` class object from an `sf` object.
 #'
-#' This function takes an `sf` point or polygon object, optionally buffers it by `buff_dist` map units and returns an obervation window object of `owin` class used by the `spatstat` package. The optional buffer is useful to get a window larger than the obsevations for making basemaps.
+#' This function takes an `sf` point or polygon object, optionally buffers it by `buff_dist` map units and returns an observation window object of `owin` class used by the `spatstat` package. The optional buffer is useful to get a window larger than the observations for making base maps.
 #'
 #' @param dat an `sf` object
 #' @param buff_dist an integer of map units which to buffer the geometry in `dat`
@@ -810,11 +810,11 @@ get_window <- function(dat, buff_dist = 0){
 
 #' Utility function to bin a numeric vector and assign risk scores based on quantile.
 #'
-#' The operation of this function is to take a column of a dataframe `bin_col` of predicted counts, bin (using `base::.bincode()`) it into many quantiles `quantile_labels`, bin the quantiles into a small number of class by `brake_vec`, and assign sequantial integer class labels to the class (e.g. 1, 2, 3, 4, 5). Can be used as a way to develop risk categories.
+#' The operation of this function is to take a column of a dataframe `bin_col` of predicted counts, bin (using `base::.bincode()`) it into many quantiles `quantile_labels`, bin the quantiles into a small number of class by `brake_vec`, and assign sequential integer class labels to the class (e.g. 1, 2, 3, 4, 5). Can be used as a way to develop risk categories.
 #'
 #' @param dat a dataframe or `sf` object containing at least a field of predictions to bin
 #' @param bin_col a character vector of the name of the field in `dat` that contains the predictions
-#' @param quantile_lables an integer denoting the number of qauntiles to bin the predictions into
+#' @param quantile_labels an integer denoting the number of quantiles to bin the predictions into
 #' @param break_vec a vector of integers that are the breaks points of the final class labels.
 #'
 #' @return a numeric vector of integers for the class label.
@@ -845,13 +845,13 @@ bin_class <- function(dat, bin_col = "pred",
 
 #' Utility function to create nearest neighbor features from an `sf` object of target observations (e.g. crime reports, points of interest, laundry mats) and an `sf` object of the fishnet analysis grid. Parallel processing is an option.
 #' 
-#' The function is a somewhat overloaded approach to computing the average nearest neighbor counts (using `nn_function()`) for an arbitrarily long list of `sf` point objects, in parallel. This requires the `foreach` package to run, but does not require a parallel backend to work; it just won't be parallel. The process is that for each `sf` point object in the `var_list`, the `nn_function()` returns the average nearest neighbor distance for each `fishnet` grid centroid to the `k` nearest observations. The results are joined back to the `fishnet` and cast into a `sf` object and returned with the values. There is handling for the edge case where the number of observations in an element of `var_list` is less than `k`. In that case, a value of `NA` is returned for the average nearest neighbor distance.
+#' The function is a somewhat overloaded approach to computing the average nearest neighbor counts (using `nn_function()`) for an arbitrarily long list of `sf` point objects, in parallel. This requires the `foreach` package to run, but does not require a parallel back end to work; it just won't be parallel. The process is that for each `sf` point object in the `var_list`, the `nn_function()` returns the average nearest neighbor distance for each `fishnet` grid centroid to the `k` nearest observations. The results are joined back to the `fishnet` and cast into a `sf` object and returned with the values. There is handling for the edge case where the number of observations in an element of `var_list` is less than `k`. In that case, a value of `NA` is returned for the average nearest neighbor distance.
 #'
 #' @param var_list a list of `sf` point objects containing the observations of interest 
 #' @param fish_net an `sf` polygon object of the analysis grid
 #' @param k an integer for the number of nearest neighbors to average over
 #'
-#' @return a list of `sf` polygon objects of the analytical fishnet with average nearest neighbor distances
+#' @return a list of `sf` polygon objects of the analytic fishnet with average nearest neighbor distances
 #'
 #' @examples
 #'
@@ -889,14 +889,14 @@ NN_point_features <- function(var_list, fishnet, k){
 
 #' Utility function to create average nearest features from an `sf` object of target observations (e.g. crime reports, points of interest, laundry mats) and an `sf` object of the fishnet analysis grid. Parallel processing is an option.
 #' 
-#' The function is a somewhat overloaded approach to computing the average nearest feature (using `raster::distanceFromPoints()`) for an arbitrarily long list of `sf` point objects, in parallel. This requires the `foreach` package to run, but does not require a parallel backend to work; it just won't be parallel. The process is that for each `sf` point object in the `var_list`, the `raster::distanceFromPoints()` function takes and arbitrarily fine resolution constant value raster `dist_raster`returns a raster of `dim(dist_raster)` where the value of each cell is the distance to the nearest point observation. This distance raster is clipped to the study area and returned as one of the two objects. Further, the distance raster is aggregated to the analytical fishnet `sf` object by taking the mean of the distances from all cells in the distance raster who's centroid falls within a given fishnet cell. This is the second object returned by this function; a `sf` polygon fishnet where each cell is the average distance to the nearest point/observation. 
+#' The function is a somewhat overloaded approach to computing the average nearest feature (using `raster::distanceFromPoints()`) for an arbitrarily long list of `sf` point objects, in parallel. This requires the `foreach` package to run, but does not require a parallel back end to work; it just won't be parallel. The process is that for each `sf` point object in the `var_list`, the `raster::distanceFromPoints()` function takes and arbitrarily fine resolution constant value raster `dist_raster`returns a raster of `dim(dist_raster)` where the value of each cell is the distance to the nearest point observation. This distance raster is clipped to the study area and returned as one of the two objects. Further, the distance raster is aggregated to the analytic fishnet `sf` object by taking the mean of the distances from all cells in the distance raster who's centroid falls within a given fishnet cell. This is the second object returned by this function; a `sf` polygon fishnet where each cell is the average distance to the nearest point/observation. 
 #'
 #' @param var_list a list of `sf` point objects containing the observations of interest 
 #' @param dist_raster a raster object of arbitrary resolution (must be less that the cell dimensions of `fishnet`) and a constant value.
 #' @param raster_make an `sf` or `sp` polygon used to clip the resulting distance raster
 #' @param fishnet an `sf` polygon object of the analysis grid
 #'
-#' @return a list of two lists: 1) a list of `sf` polygon objects of the analytical fishnet with average nearest  distance to a point observation, and 2) a list of `raster` objects of the distance rasters.
+#' @return a list of two lists: 1) a list of `sf` polygon objects of the analytic fishnet with average nearest  distance to a point observation, and 2) a list of `raster` objects of the distance rasters.
 #'
 #' @examples
 #'
@@ -938,7 +938,7 @@ Euclidean_point_features <- function(var_list, dist_raster, raster_mask, fishnet
 #' @param var_list a list of `sf` point objects containing the observations of interest 
 #' @param fish_net an `sf` polygon object of the analysis grid
 #'
-#' @return a list of `sf` polygon objects of the analytical fishnet with count of point observations that fall with each cell
+#' @return a list of `sf` polygon objects of the analytic fishnet with count of point observations that fall with each cell
 #'
 #' @examples
 #'
@@ -968,7 +968,7 @@ Aggregate_points_Features <- function(var_list, fishnet){
 #' @param data a list of `sf` point objects containing the observations of interest and a field describing a type, class, or grouping for each point. 
 #' @param field a character string denoting the name of the field containing the type, class, or description
 #' @param prefix a character string containing the prefix to use when naming the features in the resulting list
-#' @param count_threshold an interger value for the number of observations in `data` needed for each grouping to result in a subset. 
+#' @param count_threshold an integer value for the number of observations in `data` needed for each grouping to result in a subset. 
 #'
 #' @return a list of `sf` point objects, one for each type/class/group whos count exceeds the `count_threshold`
 #'
@@ -994,13 +994,13 @@ get_individual_features <- function(data, field, prefix, count_threshold){
 
 #' Utility function to aggregate an input raster value into a fishnet `sp` polygon object. Aggregates as mean, min, max, and range. NOTE: aggregation is an approximation that favors speed over accuracy
 #' 
-#' This function is a bit generic in that it takes any raster and aggregates them to a fishnet `sp` polygon object, presumably geographically overlapping. The `fishnet` object muct contain the id field names `net_id`. The process of aggregation is done via `raster::extract()`. In this process, each fishnet cell is collapsed to a centroid coordinate and then buffered by the sqrt(cell area)/2; the radius of a circle that fits within the square cell. The buffered area approximates ~78% (pi/4) of the square area, so depending on the resolution of the `rast_dat` some portion of raster data at the corners of the fishnet cell will not be included in the aggregation. This is a compromise taken to make the aggregation of large area more computationally tractable. The values of `rast_dat` are aggreagted to the approximated `fishnet` cell as the mean, min, max, and range of values. Finally, the results are joined back to `fishnet` to make them a `sf` polygon object.
+#' This function is a bit generic in that it takes any raster and aggregates them to a fishnet `sp` polygon object, presumably geographically overlapping. The `fishnet` object must contain the id field names `net_id`. The process of aggregation is done via `raster::extract()`. In this process, each fishnet cell is collapsed to a centroid coordinate and then buffered by the sqrt(cell area)/2; the radius of a circle that fits within the square cell. The buffered area approximates ~78% (pi/4) of the square area, so depending on the resolution of the `rast_dat` some portion of raster data at the corners of the fishnet cell will not be included in the aggregation. This is a compromise taken to make the aggregation of large area more computationally tractable. The values of `rast_dat` are aggregated to the approximated `fishnet` cell as the mean, min, max, and range of values. Finally, the results are joined back to `fishnet` to make them a `sf` polygon object.
 #'
 #' @param rast_dat a raster containing values
 #' @param fishnet an `sf` polygon object of the analysis grid
 #' @param feature_name a character string containing the name to use to label the feature
 #'
-#' @return a `sf` polygon object of the analytical fishnet grid with mean, min, max, and range values approximately aggregated from the `raster_dat`
+#' @return a `sf` polygon object of the analytic fishnet grid with mean, min, max, and range values approximately aggregated from the `raster_dat`
 #' 
 #' @examples
 #'
@@ -1010,10 +1010,10 @@ raster_to_fishnet <- function(rast_dat,fishnet,feature_name){
   fishnet <- fishnet %>%
     mutate(net_id = as.numeric(net_id))
   # extract input raster to fishnet cell as defined by a circular buffer of the fishnet centroid
-  # apprimates areas of square by ~78.5%; a compromise of accuracy for speed.
+  # approximates areas of square by ~78.5%; a compromise of accuracy for speed.
   buff_cnt_extract <- raster::extract(x = rast_dat, y = st_centroid(fishnet),
                                       buffer = sqrt(as.numeric(st_area(fishnet[1,])))/2)
-  # results in a list of one element per fishnet cell, each element contians all values of input raster cells within the buffer
+  # results in a list of one element per fishnet cell, each element contains all values of input raster cells within the buffer
   # name resulting list by fishnet id
   names(buff_cnt_extract) <- fishnet$net_id
   # cast each list element to df and bind
