@@ -992,15 +992,35 @@ get_individual_features <- function(data, field, prefix, count_threshold){
   return(feat_list)
 }
 
+#' Utility function to aggregate an input raster value into a fishnet `sp` polygon object. Aggregates as mean, min, max, and range. NOTE: aggregation is an approximation that favors speed over accuracy
+#' 
+#' This function is a bit generic in that it takes any raster and aggregates them to a fishnet `sp` polygon object, presumably geographically overlapping. The `fishnet` object muct contain the id field names `net_id`. The process of aggregation is done via `raster::extract()`. In this process, each fishnet cell is collapsed to a centroid coordinate and then buffered by the sqrt(cell area)/2; the radius of a circle that fits within the square cell. The buffered area approximates ~78% (pi/4) of the square area, so depending on the resolution of the `rast_dat` some portion of raster data at the corners of the fishnet cell will not be included in the aggregation. This is a compromise taken to make the aggregation of large area more computationally tractable. The values of `rast_dat` are aggreagted to the approximated `fishnet` cell as the mean, min, max, and range of values. Finally, the results are joined back to `fishnet` to make them a `sf` polygon object.
+#'
+#' @param rast_dat a raster containing values
+#' @param fishnet an `sf` polygon object of the analysis grid
+#' @param feature_name a character string containing the name to use to label the feature
+#'
+#' @return a `sf` polygon object of the analytical fishnet grid with mean, min, max, and range values approximately aggregated from the `raster_dat`
+#' 
+#' @examples
+#'
+#' @export
+#' 
 raster_to_fishnet <- function(rast_dat,fishnet,feature_name){
   fishnet <- fishnet %>%
     mutate(net_id = as.numeric(net_id))
+  # extract input raster to fishnet cell as defined by a circular buffer of the fishnet centroid
+  # apprimates areas of square by ~78.5%; a compromise of accuracy for speed.
   buff_cnt_extract <- raster::extract(x = rast_dat, y = st_centroid(fishnet),
                                       buffer = sqrt(as.numeric(st_area(fishnet[1,])))/2)
+  # results in a list of one element per fishnet cell, each element contians all values of input raster cells within the buffer
+  # name resulting list by fishnet id
   names(buff_cnt_extract) <- fishnet$net_id
+  # cast each list element to df and bind
   buff_cnt_extract_unlist <- data.table::rbindlist(lapply(buff_cnt_extract,data.frame),idcol = TRUE) %>%
     rename(net_id = `.id`,
            value = `X..i..`)
+  # group by fishnet id and calc mean, min, max, and range for each cell, join to fishnet to make `sp`
   buff_pnt_dist <- buff_cnt_extract_unlist %>%
     group_by(net_id) %>%
     summarise(feature_name = feature_name,
