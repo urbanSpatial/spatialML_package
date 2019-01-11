@@ -931,14 +931,30 @@ Euclidean_point_features <- function(var_list, dist_raster, raster_mask, fishnet
   return(list(dist_results, dist_raster))
 }
 
+#' Utility function to create aggregate count features from an `sf` object of target observations (e.g. crime reports, points of interest, laundry mats) and an `sf` object of the fishnet analysis grid. 
+#' 
+#' The function is counts the number of observation points per fishnet cell (using `sf::aggregate()`) for an arbitrarily long list of `sf` point objects. The result is a fishnet `sf` object (for each `sf` point object in `var_list`) where each cell is the count of points that fall within that cells area.
+#'
+#' @param var_list a list of `sf` point objects containing the observations of interest 
+#' @param fish_net an `sf` polygon object of the analysis grid
+#'
+#' @return a list of `sf` polygon objects of the analytical fishnet with count of point observations that fall with each cell
+#'
+#' @examples
+#'
+#' @export
+#' 
 Aggregate_points_Features <- function(var_list, fishnet){
   agg_results <- foreach(i = seq_along(var_list),
                          .packages=c('raster', 'sf', 'dplyr')) %dopar% { 
+                           # get ith `sf` feature
                            feature <- names(var_list)[i]
+                           # set value of all points to 1
                            dat <- var_list[[i]] %>%
                              mutate(value = 1) %>%
                              dplyr::select(value)
-                           net_agg <- aggregate(dat, fishnet, sum) %>%
+                           # aggreagte feature points to fishnet cell by summing value (1 per point)
+                           net_agg <- sf::aggregate(dat, fishnet, sum) %>%
                              mutate(feature_name = paste0("agg_",feature),
                                     net_id = fishnet$net_id)
                          }
@@ -946,6 +962,20 @@ Aggregate_points_Features <- function(var_list, fishnet){
   return(agg_results)
 }
 
+#' Utility function to split an `sf` point object into a list of `sf` point objects, one for each value of a field.
+#' This function is used to split an `sf` points object into subsets of `sf` points based on the values of some field. For example, an `sf` points object of crime locations may have a field called `crime_type` that takes on the values of 10 different crimes (e.g. arson, theft, burglary, etc...). This functions takes in the crime data points `data`, groups by the type field `field`, selects only those groups with enough observations to exceed `count_threshold`, and then stores each group of points as an `sf` object names with `prefix` in a new list. If there only 2 arson crime types, and `count_threshold == 5`, arson will not be dropped and not returned as a feature.
+#'
+#' @param data a list of `sf` point objects containing the observations of interest and a field describing a type, class, or grouping for each point. 
+#' @param field a character string denoting the name of the field containing the type, class, or description
+#' @param prefix a character string containing the prefix to use when naming the features in the resulting list
+#' @param count_threshold an interger value for the number of observations in `data` needed for each grouping to result in a subset. 
+#'
+#' @return a list of `sf` point objects, one for each type/class/group whos count exceeds the `count_threshold`
+#'
+#' @examples
+#'
+#' @export
+#' 
 get_individual_features <- function(data, field, prefix, count_threshold){
   feat_list <- list()
   feat_subset <- data %>%
