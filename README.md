@@ -1,7 +1,7 @@
-# spatialML_package
-This repository stores the spatial ml code 
+# Predict Align Prevent model
+This repository stores the code and markdown for the Predict Align Prevent model for child maltreatment. There are three main files to consider, 1) `./R/FUNCTONs_VAPAP.R` which is an R script of the core functions for data extraction, modeling, plotting, and utility/helpers; 2) `./R/FEA_CREATE_VARIABLES.R` is an R script that has the routine for transforming `*.csv` or `*.xls` files into a series of features used for model building and evaluation; and 3) `./Rmd/Richmond_PAP_Report.Rmd` which is an R Markdown file that has the full analysis and reporting of this project. The code in the markdown is the analytical process that uses the functions and feature creation script mentioned above. As such, the process by which to emulate this analysis requires a review and understanding of the process documented in the `Richmond_PAP_Report.Rmd`. Reviewing the functions alone will probably not provide a great deal of insight into this process. To add further detail and context to the analytical exploratory, modeling, and validation workflow, the markdown includes a series of appendices that review portions of the code and describe the how and why of the approach. The schematic code in the appendices only highlights the more novel portions of the approach are not meant to be executed on their own. These appendices are replicated further down in this README.
 
-## Packages 
+## Packages dependencies
 ```r
 library("sf")            # Spatial data objects and methods
 library("mapview")       # Interactive Map Viewing
@@ -34,7 +34,8 @@ library("viridis")       # color palette
 library("viridisLite")   # color palette
 ```
 
-  ## Appendix 1: Data wrangling
+
+## Report Appendix 1: Data wrangling
   This appendix documents some key elements of loading, cleaning, and the initial manipulation of this project's data. As with each of the code appendices, the code blocks here do not show the entire source code, but do show most of the key functions and routines used to achieve these tasks. The code illustrated here follows the basic steps of:
 
 1.  detect all `xls` and `csv` files in a directory and read them into a list
@@ -134,8 +135,8 @@ net_hood <- st_join(net_Richmond, nbr, largest = TRUE)
 listw <- nb2listw(poly2nb(as(net_Richmond, "Spatial"), queen = TRUE))
 ```
 
-
 In this final code example, the area weights population of each fishnet cell is calculated. The first step is to intersect the census blocks with the fishnet to create polygons of every intersecting region. After calculating the proportion of each Census block within each fishnet cell intersection and the matching proportion of that intersection, the `intersect_pop` populations are summed for each fishnet cell. The result is an estimate of the population of each fishnet cell based on the area and population of each census block that overlaps with it. Cells with zero population are dropped. Finally, the aggregated counts of maltreatment incidents are joined to the fishnet and a rate of incidents per 100 population is calculated.
+
 ```r
 # Compute intersection of census blocks and fishnet
 net_blocks_intersect <- st_intersection(richmond_block, net_Richmond)
@@ -157,7 +158,6 @@ fishnet_pop_cps <- st_join(fishnet_pop, CPS_agg, join = st_equals) %>%
   replace(is.na(.), 0) # replace NA with zero
 
 ```
-
 
 ## Appendix 2: Feature engineering
 This appendix documents some key elements of creating the variables, features, and data frames used in the train and test the machine learning models. As with each of the code appendices, the code blocks here do not show the entire source code, but do show most of the key functions and routines used to achieve these tasks. The code illustrated here follows the basic steps of:
